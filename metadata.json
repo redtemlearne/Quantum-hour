@@ -1,0 +1,6 @@
+{
+  "name": "Quantum Hour",
+  "description": "Talk radio about the universe and quantum mechanics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
