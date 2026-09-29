@@ -6,6 +6,8 @@ import {
   Clock,
   Compass,
   ArrowRight,
+  HelpCircle,
+  X,
 } from 'lucide-react';
 import {
   FORMAT_OPTIONS,
@@ -34,6 +36,39 @@ interface HomeScreenProps {
   mood: MoodType;
   setMood: (value: MoodType) => void;
   onGenerate: () => void;
+  redirectMessage?: string | null;
+  onDismissRedirect?: () => void;
+}
+
+function extractExampleQuestions(message: string): string[] {
+  // 1. Try matching text inside double or single quotes
+  const quoted = message.match(/"([^"]{8,})"/g) || message.match(/“([^”]{8,})”/g);
+  if (quoted && quoted.length >= 2) {
+    return quoted.slice(0, 3).map((q) => q.replace(/^[“"']|[”"']$/g, '').trim());
+  }
+
+  // 2. Try matching numbered list items or lines ending in ?
+  const lines = message.split('\n');
+  const candidates: string[] = [];
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const stripped = line.replace(/^(\d+[\.\)]|\-|\*|\•)\s*/, '').trim();
+    if (stripped.includes('?') || /^(what|why|how|is|are|can|could|did|does|do)/i.test(stripped)) {
+      candidates.push(stripped);
+    }
+  }
+
+  if (candidates.length >= 2) {
+    return candidates.slice(0, 3);
+  }
+
+  // 3. Fallback defaults if unstructured
+  return [
+    'Is the Moon there when nobody looks?',
+    'What really happens at a black hole event horizon?',
+    'What is dark matter and what remains unexplained?',
+  ];
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -48,6 +83,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   mood,
   setMood,
   onGenerate,
+  redirectMessage,
+  onDismissRedirect,
 }) => {
   const [activeTab, setActiveTab] = useState<PresetTab>('Quantum');
 
@@ -56,7 +93,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     setFormat(preset.format);
   };
 
+  const handleSelectQuestionChip = (question: string) => {
+    setPrompt(question);
+  };
+
   const isPromptEmpty = prompt.trim().length === 0;
+  const exampleQuestions = redirectMessage ? extractExampleQuestions(redirectMessage) : [];
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-10">
@@ -72,6 +114,67 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           Broadcast-grade talk radio exploring deep astrophysics, quantum anomalies, and the architecture of reality.
         </p>
       </section>
+
+      {/* Friendly Off-Topic Redirect Card */}
+      {redirectMessage && (
+        <section
+          className="rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl border animate-in fade-in slide-in-from-top-3 duration-300"
+          style={{
+            backgroundColor: 'rgba(139, 124, 246, 0.08)',
+            borderColor: 'rgba(139, 124, 246, 0.3)',
+          }}
+          aria-live="polite"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-[#5eead4]">
+              <HelpCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
+              <h2
+                className="text-base sm:text-lg font-semibold tracking-wide"
+                style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+              >
+                RADIO FOCUS & REDIRECT
+              </h2>
+            </div>
+            {onDismissRedirect && (
+              <button
+                type="button"
+                onClick={onDismissRedirect}
+                className="min-h-[44px] min-w-[44px] p-2 text-[#98a2c8] hover:text-[#e8ecff] rounded-lg active:bg-white/10 flex items-center justify-center transition-colors"
+                aria-label="Dismiss notice"
+              >
+                <X className="w-5 h-5" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
+          <p className="text-base text-[#e8ecff] leading-relaxed">
+            {redirectMessage}
+          </p>
+
+          {/* 3 Example Questions as Tappable Chips */}
+          <div className="space-y-2 pt-1">
+            <span
+              className="text-xs text-[#98a2c8] uppercase tracking-wider block"
+              style={{ fontFamily: "'IBM Plex Mono', monospace" }}
+            >
+              Suggested Questions (tap to fill prompt):
+            </span>
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2.5">
+              {exampleQuestions.map((q, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSelectQuestionChip(q)}
+                  className="min-h-[48px] px-4 py-2.5 rounded-xl text-sm sm:text-base text-left bg-black/40 text-[#e8ecff] border border-[#8b7cf6]/40 hover:border-[#5eead4]/60 active:scale-[0.98] transition-all touch-manipulation flex items-center gap-2 shadow-sm"
+                >
+                  <span className="text-[#5eead4] font-mono text-xs shrink-0">#{idx + 1}</span>
+                  <span className="line-clamp-2">{q}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Main Studio Prompt & Controls Console */}
       <section

@@ -92,3 +92,30 @@ export const GENERATION_STEPS = [
   'Mixing',
   'Painting cover',
 ] as const;
+
+export interface ScriptLine {
+  speaker: string;
+  role: 'host' | 'caller';
+  city: string;
+  text: string;
+}
+
+export interface ScriptOutput {
+  onTopic: boolean;
+  redirectMessage: string;
+  title: string;
+  summary: string;
+  lines: ScriptLine[];
+  modelUsed?: string;
+}
+
+/**
+ * Converts length option strings (e.g. "3 min", "5 min", "8 min")
+ * into a pure integer number of minutes (e.g. 3, 5, 8).
+ */
+export function parseLengthToMinutes(length: LengthType | string | number): number {
+  if (typeof length === 'number') return length;
+  const match = String(length).match(/\d+/);
+  return match ? parseInt(match[0], 10) : 3;
+}
+

@@ -10,7 +10,7 @@ import { HomeScreen } from './components/HomeScreen.tsx';
 import { GeneratingScreen } from './components/GeneratingScreen.tsx';
 import { PlayerScreen } from './components/PlayerScreen.tsx';
 import { LibraryScreen } from './components/LibraryScreen.tsx';
-import { FormatType, LevelType, LengthType, MoodType } from './data.ts';
+import { FormatType, LevelType, LengthType, MoodType, ScriptOutput } from './data.ts';
 
 export type ScreenState = 'home' | 'generating' | 'player' | 'library';
 
@@ -22,7 +22,11 @@ export default function App() {
   const [length, setLength] = useState<LengthType>('3 min');
   const [mood, setMood] = useState<MoodType>('Curious');
 
-  // Verify server health on mount (only allowed fetch call in this stage)
+  // Script generation and off-topic redirect state
+  const [generatedScript, setGeneratedScript] = useState<ScriptOutput | null>(null);
+  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
+
+  // Verify server health on mount
   useEffect(() => {
     fetch('/api/health')
       .then((res) => res.json())
@@ -33,6 +37,7 @@ export default function App() {
 
   const handleStartGenerating = () => {
     if (prompt.trim().length > 0) {
+      setRedirectMessage(null);
       setCurrentScreen('generating');
     }
   };
@@ -41,7 +46,13 @@ export default function App() {
     setCurrentScreen('home');
   };
 
-  const handleOpenPlayer = () => {
+  const handleScriptOffTopic = (msg: string) => {
+    setRedirectMessage(msg);
+    setCurrentScreen('home');
+  };
+
+  const handleScriptSuccess = (script: ScriptOutput) => {
+    setGeneratedScript(script);
     setCurrentScreen('player');
   };
 
@@ -72,20 +83,28 @@ export default function App() {
             mood={mood}
             setMood={setMood}
             onGenerate={handleStartGenerating}
+            redirectMessage={redirectMessage}
+            onDismissRedirect={() => setRedirectMessage(null)}
           />
         )}
 
         {currentScreen === 'generating' && (
           <GeneratingScreen
             prompt={prompt}
+            format={format}
+            level={level}
+            length={length}
+            mood={mood}
             onCancel={handleCancelGenerating}
-            onOpenPlayer={handleOpenPlayer}
+            onOffTopic={handleScriptOffTopic}
+            onSuccess={handleScriptSuccess}
           />
         )}
 
         {currentScreen === 'player' && (
           <PlayerScreen
             prompt={prompt}
+            script={generatedScript}
             onBackToStudio={() => setCurrentScreen('home')}
           />
         )}
